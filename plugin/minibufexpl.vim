@@ -543,8 +543,8 @@ function! <SID>RenderSyntax()
     syn match MBEChanged                  '\[[^\]]*\]+'
     syn match MBEVisibleNormal            '\[[^\]]*\]\*'
     syn match MBEVisibleChanged           '\[[^\]]*\]\*+'
-    syn match MBEVisibleActiveNormal      '\[[^\]]*\]\*!'
-    syn match MBEVisibleActiveChanged     '\[[^\]]*\]\*+!'
+    syn match MBEVisibleActiveNormal      '\[[^\]]*\]\*\!'
+    syn match MBEVisibleActiveChanged     '\[[^\]]*\]\*+\!'
 
     "MiniBufExpl Color Examples
     " hi MBENormal               guifg=#808080 guibg=fg
