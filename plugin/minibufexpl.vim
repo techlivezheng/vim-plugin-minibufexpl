@@ -541,6 +541,7 @@ function! <SID>RenderSyntax()
   if has("syntax")
     syn clear
     syn match MBENormal                   '\[[^\]]*\]'
+    syn match MBESelecting                '\k*\%#\k*[^\]]*\]'
     syn match MBEChanged                  '\[[^\]]*\]+'
     syn match MBEVisibleNormal            '\[[^\]]*\]\*'
     syn match MBEVisibleChanged           '\[[^\]]*\]\*+'
@@ -549,6 +550,7 @@ function! <SID>RenderSyntax()
 
     "MiniBufExpl Color Examples
     " hi MBENormal               guifg=#808080 guibg=fg
+    " hi MBESelecting            guifg=#B4F869 guibg=fg
     " hi MBEChanged              guifg=#CD5907 guibg=fg
     " hi MBEVisibleNormal        guifg=#5DC2D6 guibg=fg
     " hi MBEVisibleChanged       guifg=#F1266F guibg=fg
@@ -558,6 +560,7 @@ function! <SID>RenderSyntax()
     if !exists("g:did_minibufexplorer_syntax_inits")
       let g:did_minibufexplorer_syntax_inits = 1
       hi def link MBENormal                Comment
+      hi def link MBESelecting             Function
       hi def link MBEChanged               String
       hi def link MBEVisibleNormal         Special
       hi def link MBEVisibleChanged        Special
