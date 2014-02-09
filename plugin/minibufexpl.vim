@@ -635,11 +635,12 @@ function! <SID>StartExplorer(curBufNum)
     exec 'setlocal winwidth='.g:miniBufExplMinSize
   endif
 
-  " If folks turn numbering and columns on by default we will turn
+  " If folks turn cursorline, numbering and columns on by default we will turn
   " them off for the MBE window
   setlocal foldcolumn=0
   setlocal nonumber
-  if exists("&norelativenumber")
+  setlocal nocursorline
+  if exists("&relativenumber")
     " relativenumber was introduced in Vim 7.3 - this provides compatibility
     " for older versions of Vim
     setlocal norelativenumber
