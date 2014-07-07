@@ -2035,7 +2035,7 @@ function! <SID>HasEligibleBuffers()
   call <SID>DEBUG('Found '.l:found.' eligible buffers of '.l:needed.' needed',6)
 
   call <SID>DEBUG('Leaving HasEligibleBuffers()',10)
-  return (l:found >= l:needed)
+  return ((l:needed > 1 || winnr('$') > 1) && l:found >= l:needed)
 endfunction
 
 " }}}
