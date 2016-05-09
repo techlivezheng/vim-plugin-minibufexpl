@@ -78,6 +78,12 @@ endif
 if !exists(':MBEToggleMRUAll')
   command! -bang MBEToggleMRUAll    tabdo call <SID>ToggleMRU()
 endif
+if !exists(':MBEGoTo')
+  command! -nargs=1 MBEGoTo call <SID>GoToBuffer(<args>)
+endif
+if !exists(':MBEMRUGoTo')
+  command! -nargs=1 MBEMRUGoTo call <SID>GoToBuffer(<args>,1)
+endif
 if !exists(':MBEbn')
   command! MBEbn call <SID>CycleBuffer(1)
 endif
@@ -260,6 +266,27 @@ endif
 "
 if !exists('g:miniBufExplShowBufNumbers')
   let g:miniBufExplShowBufNumbers = 1
+endif
+
+" }}}
+" ShowBufMBENumber? {{{
+" Shows the number of the buffer as seen by MBE, so that if you go
+" to the first buffer and do MBEbn, that's buffer 2 according to
+" this flag.  Defaults to 0, turn on by setting to 1.
+"
+if !exists('g:miniBufExplShowBufMBENumbers')
+  let g:miniBufExplShowBufMBENumbers = 0
+endif
+
+" }}}
+" ShowBufMRUNumber? {{{
+" Shows the number of the buffer in MRU order.  By definition this
+" is always one for the current buffer; the buffer you get to if you
+" do MBEbf is number 2 according to this flag.
+" Defaults to 0, turn on by setting to 1.
+"
+if !exists('g:miniBufExplShowBufMRUNumbers')
+  let g:miniBufExplShowBufMRUNumbers = 0
 endif
 
 " }}}
@@ -686,17 +713,10 @@ function! <SID>StartExplorer(curBufNum)
   " The following allows for quicker moving between buffer
   " names in the [MBE] window it also saves the last-pattern
   " and restores it.
-  if !g:miniBufExplShowBufNumbers
-    nnoremap <buffer> l       :call search('\[[^\]]*\]')<CR>:<BS>
-    nnoremap <buffer> h       :call search('\[[^\]]*\]','b')<CR>:<BS>
-    nnoremap <buffer> <right> :call search('\[[^\]]*\]')<CR>:<BS>
-    nnoremap <buffer> <left>  :call search('\[[^\]]*\]','b')<CR>:<BS>
-  else
-    nnoremap <buffer> l       :call search('\[[0-9]*:[^\]]*\]')<CR>:<BS>
-    nnoremap <buffer> h       :call search('\[[0-9]*:[^\]]*\]','b')<CR>:<BS>
-    nnoremap <buffer> <right> :call search('\[[0-9]*:[^\]]*\]')<CR>:<BS>
-    nnoremap <buffer> <left>  :call search('\[[0-9]*:[^\]]*\]','b')<CR>:<BS>
-  endif
+  nnoremap <buffer> l       :call search('\[\%([0-9]*:\)*[^\]]*\]')<CR>:<BS>
+  nnoremap <buffer> h       :call search('\[\%([0-9]*:\)*[^\]]*\]','b')<CR>:<BS>
+  nnoremap <buffer> <right> :call search('\[\%([0-9]*:\)*[^\]]*\]')<CR>:<BS>
+  nnoremap <buffer> <left>  :call search('\[\%([0-9]*:\)*[^\]]*\]','b')<CR>:<BS>
 
   " Attempt to perform single click mapping
   " It would be much nicer if we could 'nnoremap <buffer> ...', however
@@ -1082,6 +1102,27 @@ function! <SID>FindCreateWindow(bufName, vSplit, brSplit, forceEdge, isPluginWin
 endfunction
 
 " }}}
+" GenBufferPrefix - Generate numbers to stick on front of the buffer name {{{
+"
+" Just produces output based on g:miniBufExplShowBufNumbers ,
+" g:miniBufExplShowBufMBENumbers , and g:miniBufExplShowBufMRUNumbers
+"
+function! <SID>GenBufferPrefix(bufNum)
+  let l:prefix = ''
+  if g:miniBufExplShowBufNumbers
+    let l:prefix .= a:bufNum.':'
+  endif
+  if g:miniBufExplShowBufMBENumbers
+    let curBufIndex = index(s:BufList, a:bufNum) + 1
+    let l:prefix .= l:curBufIndex.':'
+  endif
+  if g:miniBufExplShowBufMRUNumbers
+    let curBufIndex = index(s:MRUList, a:bufNum) + 1
+    let l:prefix .= l:curBufIndex.':'
+  endif
+  return l:prefix
+endfunction
+" }}}
 " DisplayBuffers - Wrapper for getting MBE window shown {{{
 "
 " Makes sure we are in our explorer, then erases the current buffer and turns
@@ -1101,11 +1142,8 @@ function! <SID>DisplayBuffers(curBufNum)
 
   " Place cursor at current buffer in MBE
   if !<SID>IsBufferIgnored(a:curBufNum)
-    if !g:miniBufExplShowBufNumbers
-      call search('\V['.s:bufUniqNameDict[a:curBufNum].']', 'w')
-    else
-      call search('\V['.a:curBufNum.':'.s:bufUniqNameDict[a:curBufNum].']', 'w')
-    endif
+    let l:prefix = <SID>GenBufferPrefix(a:curBufNum)
+    call search('\V['.l:prefix.s:bufUniqNameDict[a:curBufNum].']', 'w')
   endif
 
   call <SID>DEBUG('Leaving DisplayExplorer()',10)
@@ -1271,6 +1309,36 @@ function! <SID>ShowBuffers()
   let &showcmd = l:save_sc
 
   call <SID>DEBUG('Leaving ShowBuffers()',10)
+endfunction
+
+" }}}
+" GoToBuffer - Go to a buffer by MBE buffer list number {{{
+"
+" Go to buffer N in MBE's buffer list, meaning that the left-most
+" buffer shown in the MBE window is 1, the next one to the right is
+" 2, and so on, regardless of actual buffer number.  Goes well with
+" g:miniBufExplShowBufMBENumbers
+"
+" If the argument is too large, goes to the last item.  If it's too
+" small (which shouldn't really happen), goes to the first item.
+"
+" Second argument is whether to use MRU buffer list; 1 for MRU, 0
+" for normal.
+"
+function! <SID>GoToBuffer(destBuf,...)
+  if exists('a:1') && a:1 == 1
+    call <SID>DEBUG('GoToBuffer: MRUList is '.string(s:MRUList),1)
+    let l:moveCmd = 'b! '.s:MRUList[max([0,min([a:destBuf-1,len(s:MRUList)-1])])]
+  else
+    call <SID>DEBUG('GoToBuffer: BufList is '.string(s:BufList),1)
+    let l:moveCmd = 'b! '.s:BufList[max([0,min([a:destBuf-1,len(s:BufList)-1])])]
+  endif
+
+  call <SID>DEBUG('GoToBuffer: ===============move cmd is '.l:moveCmd,1)
+
+  exec l:moveCmd
+
+  let s:MRUEnable = 1
 endfunction
 
 " }}}
@@ -1522,9 +1590,7 @@ function! <SID>BuildBufferList(curBufNum)
         " Establish the tab's content, including the differentiating root
         " dir if neccessary
         let l:tab = '['
-        if g:miniBufExplShowBufNumbers == 1
-            let l:tab .= l:i.':'
-        endif
+        let l:tab .= <SID>GenBufferPrefix(l:i)
         let l:tab .= s:bufUniqNameDict[l:i]
         let l:tab .= ']'
 
@@ -2149,14 +2215,20 @@ endfunction
 function! <SID>GetBufferNumber(bufname)
   call <SID>DEBUG('Entering GetBufferNumber()',10)
   call <SID>DEBUG('The buffer name is '.a:bufname,9)
-  if !g:miniBufExplShowBufNumbers
+  " Try to use buffer number tags to find stuff more easily, fall
+  " back to a search.
+  if g:miniBufExplShowBufNumbers
+    let l:retv = substitute(a:bufname,'\[*\([0-9]*\):.*', '\1', '') + 0
+  elseif g:miniBufExplShowBufMBENumbers
+    let l:retv = s:BufList[(substitute(a:bufname,'\[*\([0-9]*\):.*', '\1', '') - 1)]
+  elseif g:miniBufExplShowBufMRUNumbers
+    let l:retv = s:MRUList[(substitute(a:bufname,'\[*\([0-9]*\):.*', '\1', '') - 1)]
+  else
     " This is a bit ugly, but it works, unless we come up with a
     " better way to get the key for a dictionary by its value.
     let l:bufUniqNameDictKeys = keys(s:bufUniqNameDict)
     let l:bufUniqNameDictValues = values(s:bufUniqNameDict)
     let l:retv = l:bufUniqNameDictKeys[match(l:bufUniqNameDictValues,substitute(a:bufname,'\[*\([^\]]*\)\]*.*', '\1', ''))]
-  else
-    let l:retv = substitute(a:bufname,'\[*\([0-9]*\):[^\]]*\]*.*', '\1', '') + 0
   endif
   call <SID>DEBUG('The buffer number is '.l:retv,9)
   call <SID>DEBUG('Leaving GetBufferNumber()',10)

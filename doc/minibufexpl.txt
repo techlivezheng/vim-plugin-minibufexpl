@@ -151,6 +151,16 @@ configuration of Vim.
     Toggle the buffer listing order of the MBE window between its default and
     most recently used in every tab page.
 
+:MBEGoTo <N>                                                        *:MBEGoTo*
+    Go to buffer N in MBE's buffer list, meaning that the left-most buffer
+    shown in the MBE window is 1, the next one to the right is 2, and so on,
+    regardless of actual buffer number.  Goes well with
+    g:miniBufExplShowBufMBENumbers
+
+:MBEMRUGoTo <N>                                                  *:MBEMRUGoTo*
+    Same as MBEGoTo except that it uses the MRU buffer list intead of the
+    normal list.
+
 :MBEbn                                                                *:MBEbn*
     Switch to next normal buffer in current window.
 
