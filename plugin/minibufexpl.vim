@@ -1748,6 +1748,10 @@ function! <SID>BuildBufferPathSignDict(bufnrs, ...)
 
     " Group the buffers by this part of the buffer's path
     for bufnr in bufnrs
+        if (!has_key(s:bufPathDict, bufnr))
+          continue
+        endif
+
         " Make sure each buffer has an entry in 's:bufPathSignDict'
         " If index is zero, we force re-initialize the entry
         if index == 0 || !has_key(s:bufPathSignDict, bufnr)
