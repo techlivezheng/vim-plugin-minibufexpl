@@ -501,16 +501,19 @@ function! <SID>TabEnterHandler()
 endfunction
 
 function! <SID>BufAddHandler()
-  call <SID>DEBUG('Entering BufAdd Handler', 10)
+  " If not in command line window; see https://vi.stackexchange.com/questions/14315/how-can-i-tell-if-im-in-the-command-window
+  if mode() == 'n' && getcmdwintype() == ''
+    call <SID>DEBUG('Entering BufAdd Handler', 10)
 
-  call <SID>ListAdd(s:BufList,str2nr(expand("<abuf>")))
-  call <SID>ListAdd(s:MRUList,str2nr(expand("<abuf>")))
+    call <SID>ListAdd(s:BufList,str2nr(expand("<abuf>")))
+    call <SID>ListAdd(s:MRUList,str2nr(expand("<abuf>")))
 
-  call <SID>UpdateAllBufferDicts(expand("<abuf>"),0)
+    call <SID>UpdateAllBufferDicts(expand("<abuf>"),0)
 
-  call <SID>AutoUpdate(bufnr("%"),0)
+    call <SID>AutoUpdate(bufnr("%"),0)
 
-  call <SID>DEBUG('Leaving BufAdd Handler', 10)
+    call <SID>DEBUG('Leaving BufAdd Handler', 10)
+  endif
 endfunction
 
 function! <SID>BufEnterHandler() abort
